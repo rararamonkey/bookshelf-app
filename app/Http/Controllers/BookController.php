@@ -19,15 +19,23 @@ class BookController extends Controller
     }
 
     public function show(Book $book)
-    {
-        $book->load([
-            'genres',
-            'reviews.user',
-            'reviews.likedByUsers',
-        ]);
+{
+    $book->load([
+        'genres',
+        'reviews.user',
+        'reviews.likedByUsers',
+    ]);
 
-        return view('books.show', compact('book'));
+    $alreadyReviewed = false;
+
+    if (auth()->check()) {
+        $alreadyReviewed = $book->reviews()
+            ->where('user_id', auth()->id())
+            ->exists();
     }
+
+    return view('books.show', compact('book', 'alreadyReviewed'));
+}
 
     public function create()
     {
