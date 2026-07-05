@@ -10,9 +10,9 @@ class ApiBookStoreRequest extends FormRequest
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
-    {
-        return false;
-    }
+{
+    return true;
+}
 
     /**
      * Get the validation rules that apply to the request.
@@ -20,9 +20,17 @@ class ApiBookStoreRequest extends FormRequest
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
-    {
-        return [
-            //
-        ];
-    }
+{
+    return [
+        'user_id' => ['required', 'integer', 'exists:users,id'],
+        'title' => ['required', 'string', 'max:255'],
+        'author' => ['required', 'string', 'max:255'],
+        'isbn' => ['required', 'digits:13', 'unique:books,isbn'],
+        'published_date' => ['required', 'date'],
+        'description' => ['nullable', 'string'],
+        'image_url' => ['nullable', 'url', 'max:255'],
+        'genres' => ['required', 'array', 'min:1'],
+        'genres.*' => ['integer', 'exists:genres,id'],
+    ];
+}
 }

@@ -6,36 +6,37 @@ use App\Http\Requests\BookStoreRequest;
 use App\Http\Requests\BookUpdateRequest;
 use App\Models\Book;
 use App\Models\Genre;
+use App\Http\Resources\Api\V1\BookDetailResource;
 
 class BookController extends Controller
 {
     public function index()
-    {
-        $books = Book::with(['genres', 'reviews'])
-            ->latest()
-            ->paginate(10);
+{
+    $books = Book::with(['genres', 'reviews'])
+        ->latest()
+        ->paginate(10);
 
-        return view('books.index', compact('books'));
-    }
+    return view('books.index', compact('books'));
+}
 
     public function show(Book $book)
-{
-    $book->load([
-        'genres',
-        'reviews.user',
-        'reviews.likedByUsers',
-    ]);
+    {
+        $book->load([
+            'genres',
+            'reviews.user',
+            'reviews.likedByUsers',
+        ]);
 
-    $alreadyReviewed = false;
+        $alreadyReviewed = false;
 
-    if (auth()->check()) {
-        $alreadyReviewed = $book->reviews()
-            ->where('user_id', auth()->id())
-            ->exists();
+        if (auth()->check()) {
+            $alreadyReviewed = $book->reviews()
+                ->where('user_id', auth()->id())
+                ->exists();
+        }
+
+        return view('books.show', compact('book', 'alreadyReviewed'));
     }
-
-    return view('books.show', compact('book', 'alreadyReviewed'));
-}
 
     public function create()
     {
@@ -45,22 +46,22 @@ class BookController extends Controller
     }
 
     public function store(BookStoreRequest $request)
-{
-    $book = Book::create([
-        'user_id' => auth()->id(),
-        'title' => $request->title,
-        'author' => $request->author,
-        'isbn' => $request->isbn,
-        'published_date' => $request->published_date,
-        'description' => $request->description,
-        'image_url' => $request->image_url,
-    ]);
+    {
+        $book = Book::create([
+            'user_id' => auth()->id(),
+            'title' => $request->title,
+            'author' => $request->author,
+            'isbn' => $request->isbn,
+            'published_date' => $request->published_date,
+            'description' => $request->description,
+            'image_url' => $request->image_url,
+        ]);
 
-    $book->genres()->sync($request->genres);
+        $book->genres()->sync($request->genres);
 
-    return redirect()->route('books.show', $book)
-        ->with('success', '書籍を登録しました。');
-}
+        return redirect()->route('books.show', $book)
+            ->with('success', '書籍を登録しました。');
+    }
 
     public function edit(Book $book)
     {
@@ -72,23 +73,23 @@ class BookController extends Controller
     }
 
     public function update(BookUpdateRequest $request, Book $book)
-{
-    $this->authorize('update', $book);
+    {
+        $this->authorize('update', $book);
 
-    $book->update([
-        'title' => $request->title,
-        'author' => $request->author,
-        'isbn' => $request->isbn,
-        'published_date' => $request->published_date,
-        'description' => $request->description,
-        'image_url' => $request->image_url,
-    ]);
+        $book->update([
+            'title' => $request->title,
+            'author' => $request->author,
+            'isbn' => $request->isbn,
+            'published_date' => $request->published_date,
+            'description' => $request->description,
+            'image_url' => $request->image_url,
+        ]);
 
-    $book->genres()->sync($request->genres);
+        $book->genres()->sync($request->genres);
 
-    return redirect()->route('books.show', $book)
-        ->with('success', '書籍を更新しました。');
-}
+        return redirect()->route('books.show', $book)
+            ->with('success', '書籍を更新しました。');
+    }
 
     public function destroy(Book $book)
     {

@@ -3,47 +3,92 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ApiBookIndexRequest;
+use App\Http\Resources\Api\V1\BookResource;
+use App\Models\Book;
 use Illuminate\Http\Request;
+use App\Http\Resources\Api\V1\BookDetailResource;
+use App\Http\Requests\Api\V1\ApiBookStoreRequest;
+use App\Http\Requests\Api\V1\ApiBookUpdateRequest;
 
 class BookController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index(ApiBookIndexRequest $request)
+{
+    $books = Book::with('genres')
+        ->withAvg('reviews', 'rating')
+        ->withCount('reviews');
+
+    if ($request->filled('keyword')) {
+        $books->where(function ($query) use ($request) {
+            $query->where('title', 'like', '%' . $request->keyword . '%')
+                ->orWhere('author', 'like', '%' . $request->keyword . '%');
+        });
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    if ($request->filled('genre_id')) {
+        $books->whereHas('genres', function ($query) use ($request) {
+            $query->where('genres.id', $request->genre_id);
+        });
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+    $books = $books->paginate(
+    (int) $request->input('per_page', 10)
+);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+    return BookResource::collection($books);
+}
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
+    public function store(ApiBookStoreRequest $request)
+{
+    $book = Book::create($request->validated());
+
+    $book->genres()->sync($request->input('genres'));
+
+    $book->load('genres')
+        ->loadAvg('reviews', 'rating')
+        ->loadCount('reviews');
+
+    return (new BookResource($book))
+        ->additional([
+            'message' => '書籍を登録しました。',
+        ])
+        ->response()
+        ->setStatusCode(201);
+}
+
+    public function show(Book $book)
+{
+    $book->load([
+        'genres',
+        'reviews.user',
+    ])
+        ->loadAvg('reviews', 'rating')
+        ->loadCount('reviews');
+
+    return new BookDetailResource($book);
+}
+
+    public function update(ApiBookUpdateRequest $request, Book $book)
+{
+    $book->update($request->validated());
+
+    $book->genres()->sync($request->input('genres'));
+
+    $book->load('genres')
+        ->loadAvg('reviews', 'rating')
+        ->loadCount('reviews');
+
+    return (new BookResource($book))
+        ->additional([
+            'message' => '書籍を更新しました。',
+        ]);
+}
+
+    public function destroy(Book $book)
+{
+    $book->delete();
+
+    return response()->noContent();
+}
 }
