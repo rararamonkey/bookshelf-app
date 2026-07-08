@@ -14,7 +14,7 @@ class ReadingPlanRequest extends FormRequest
 
     public function rules(): array
     {
-        $readingPlanId = $this->route('reading_plan')?->id ?? $this->route('readingPlan')?->id;
+        $readingPlanId = $this->route('readingPlan')?->id;
 
         return [
             'book_id' => [
@@ -22,7 +22,10 @@ class ReadingPlanRequest extends FormRequest
                 'integer',
                 'exists:books,id',
                 Rule::unique('reading_plans', 'book_id')
-                    ->where('user_id', auth()->id())
+                    ->where(fn ($query) => $query
+                        ->where('user_id', auth()->id())
+                        ->whereIn('status', ['planned', 'reading'])
+                    )
                     ->ignore($readingPlanId),
             ],
             'target_date' => ['required', 'date', 'after_or_equal:today'],
