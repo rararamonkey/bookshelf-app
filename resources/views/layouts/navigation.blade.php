@@ -27,6 +27,21 @@
                     <x-nav-link :href="route('genres.index')" :active="request()->routeIs('genres.*')">
                         {{ __('ジャンル管理') }}
                     </x-nav-link>
+                    @auth
+<x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+    {{ __('通知一覧') }}
+</x-nav-link>
+@endauth
+                    @auth
+                    <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
+                        {{ __('マイ読書レポート') }}
+                    </x-nav-link>
+                    @endauth
+                    @auth
+    <x-nav-link :href="route('reading-plans.index')" :active="request()->routeIs('reading-plans.*')">
+        {{ __('読書計画') }}
+    </x-nav-link>
+@endauth
                 </div>
             </div>
 
@@ -94,6 +109,21 @@
             <x-responsive-nav-link :href="route('genres.index')" :active="request()->routeIs('genres.*')">
                 {{ __('ジャンル管理') }}
             </x-responsive-nav-link>
+            @auth
+<x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+    {{ __('通知一覧') }}
+</x-responsive-nav-link>
+@endauth
+            @auth
+            <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
+                {{ __('マイ読書レポート') }}
+            </x-responsive-nav-link>
+            @endauth
+            @auth
+    <x-responsive-nav-link :href="route('reading-plans.index')" :active="request()->routeIs('reading-plans.*')">
+        {{ __('読書計画') }}
+    </x-responsive-nav-link>
+@endauth
         </div>
 
         <!-- Responsive Settings Options -->

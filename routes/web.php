@@ -6,6 +6,9 @@ use App\Http\Controllers\GenreController;
 use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RankingController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReadingPlanController;
+use App\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,6 +34,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/books/create', [BookController::class, 'create'])
         ->name('books.create');
 
+    Route::get('/books/isbn/{isbn}', [BookController::class, 'searchByIsbn'])
+    ->name('books.isbn');
+
     Route::post('/books', [BookController::class, 'store'])
         ->name('books.store');
 
@@ -42,6 +48,37 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/books/{book}', [BookController::class, 'destroy'])
         ->name('books.destroy');
+    
+    Route::get('/reports', [ReportController::class, 'index'])
+    ->name('reports.index');
+
+    Route::get('/reading-plans', [ReadingPlanController::class, 'index'])
+        ->name('reading-plans.index');
+    
+    Route::get('/reading-plans/create', [ReadingPlanController::class, 'create'])
+    ->name('reading-plans.create');
+
+    Route::post('/reading-plans', [ReadingPlanController::class, 'store'])
+    ->name('reading-plans.store');
+
+    Route::patch('/reading-plans/{readingPlan}/status', [ReadingPlanController::class, 'updateStatus'])
+    ->name('reading-plans.update-status');
+
+    Route::get('/reading-plans/{readingPlan}/edit', [ReadingPlanController::class, 'edit'])
+    ->name('reading-plans.edit');
+
+    Route::put('/reading-plans/{readingPlan}', [ReadingPlanController::class, 'update'])
+    ->name('reading-plans.update');
+
+    Route::delete('/reading-plans/{readingPlan}', [ReadingPlanController::class, 'destroy'])
+    ->name('reading-plans.destroy');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])
+    ->name('notifications.index');
+
+Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])
+    ->name('notifications.read');
+    
 
     /// Genre
 Route::get('/genres', [GenreController::class, 'index'])

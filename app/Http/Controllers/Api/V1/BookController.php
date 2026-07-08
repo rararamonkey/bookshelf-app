@@ -69,8 +69,10 @@ class BookController extends Controller
     return new BookDetailResource($book);
 }
 
-    public function update(ApiBookUpdateRequest $request, Book $book)
+   public function update(ApiBookUpdateRequest $request, Book $book)
 {
+    $this->authorize('update', $book);
+
     $book->update($request->validated());
 
     $book->genres()->sync($request->input('genres'));
@@ -87,6 +89,8 @@ class BookController extends Controller
 
     public function destroy(Book $book)
 {
+    $this->authorize('delete', $book);
+
     $book->delete();
 
     return response()->noContent();

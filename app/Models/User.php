@@ -61,4 +61,9 @@ public function likedReviews()
 {
     return $this->belongsToMany(Review::class, 'review_likes');
 }
+
+public function readingPlans()
+{
+    return $this->hasMany(ReadingPlan::class);
+}
 }

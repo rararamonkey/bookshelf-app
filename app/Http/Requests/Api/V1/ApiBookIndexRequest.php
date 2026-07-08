@@ -28,6 +28,15 @@ class ApiBookIndexRequest extends FormRequest
         'per_page' => ['nullable', 'integer', 'between:1,100'],
     ];
 }
+    public function attributes(): array
+{
+    return [
+        'keyword' => 'キーワード',
+        'genre_id' => 'ジャンルID',
+        'page' => 'ページ番号',
+        'per_page' => '1ページあたりの件数',
+    ];
+}
     public function messages(): array
 {
     return [
