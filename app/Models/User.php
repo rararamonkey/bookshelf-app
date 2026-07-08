@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\ReadingPlan;
 
 class User extends Authenticatable
 {
@@ -60,5 +62,9 @@ public function favoriteBooks()
 public function likedReviews()
 {
     return $this->belongsToMany(Review::class, 'review_likes');
+}
+public function readingPlans(): HasMany
+{
+    return $this->hasMany(ReadingPlan::class);
 }
 }
