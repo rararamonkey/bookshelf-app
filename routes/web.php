@@ -105,6 +105,9 @@ Route::middleware('auth')->group(function () {
 
     Route::put('/reading-plans/{readingPlan}', [ReadingPlanController::class, 'update'])
         ->name('reading-plans.update');
+        
+    Route::post('/reading-plans/{readingPlan}/start', [ReadingPlanController::class, 'start'])
+    ->name('reading-plans.start');
 
     Route::post('/reading-plans/{readingPlan}/complete', [ReadingPlanController::class, 'complete'])
         ->name('reading-plans.complete');

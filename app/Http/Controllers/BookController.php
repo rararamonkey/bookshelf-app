@@ -120,49 +120,39 @@ class BookController extends Controller
     }
 
     public function fetchByIsbn(string $isbn)
-    {
-        if (! preg_match('/^\d{13}$/', $isbn)) {
-            return response()->json([
-                'error' => 'ISBNは13桁で入力してください。',
-            ], 422);
-        }
-
-        $localBook = Book::where('isbn', $isbn)->first();
-
-        if ($localBook) {
-            return response()->json([
-                'title' => $localBook->title,
-                'author' => $localBook->author,
-                'published_date' => optional($localBook->published_date)->format('Y-m-d'),
-                'description' => $localBook->description ?? '',
-                'image_url' => $localBook->image_url ?? '',
-            ]);
-        }
-
-        $response = Http::get("https://www.googleapis.com/books/v1/volumes?q=isbn:{$isbn}");
-
-        if (! $response->successful()) {
-            return response()->json([
-                'error' => '書籍情報の取得に失敗しました。',
-            ], 500);
-        }
-
-        $item = collect($response->json('items', []))->first();
-
-        if (! $item) {
-            return response()->json([
-                'error' => '書籍情報が見つかりませんでした。',
-            ], 404);
-        }
-
-        $info = $item['volumeInfo'] ?? [];
-
+{
+    if (! preg_match('/^\d{13}$/', $isbn)) {
         return response()->json([
-            'title' => $info['title'] ?? '',
-            'author' => collect($info['authors'] ?? [])->join('、'),
-            'published_date' => $info['publishedDate'] ?? '',
-            'description' => $info['description'] ?? '',
-            'image_url' => $info['imageLinks']['thumbnail'] ?? '',
-        ]);
+            'error' => 'ISBNは13桁で入力してください。',
+        ], 422);
     }
+
+    $response = Http::get(
+        "https://www.googleapis.com/books/v1/volumes?q=isbn:{$isbn}"
+    );
+
+    if (! $response->successful()) {
+        return response()->json([
+            'error' => '書籍情報の取得に失敗しました。',
+        ], 500);
+    }
+
+    $item = collect($response->json('items', []))->first();
+
+    if (! $item) {
+        return response()->json([
+            'error' => '書籍情報が見つかりませんでした。',
+        ], 404);
+    }
+
+    $info = $item['volumeInfo'] ?? [];
+
+    return response()->json([
+        'title' => $info['title'] ?? '',
+        'author' => collect($info['authors'] ?? [])->join('、'),
+        'published_date' => $info['publishedDate'] ?? '',
+        'description' => $info['description'] ?? '',
+        'image_url' => $info['imageLinks']['thumbnail'] ?? '',
+    ]);
+}
 }

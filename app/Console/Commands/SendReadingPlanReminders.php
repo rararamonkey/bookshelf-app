@@ -11,7 +11,7 @@ class SendReadingPlanReminders extends Command
 {
     protected $signature = 'reading-plans:send-reminders';
 
-    protected $description = '期限を過ぎた読書計画のリマインダー通知を送信します。';
+    protected $description = '期限を過ぎた読書計画に通知を送り、期限切れへ変更します。';
 
     public function handle(): int
     {
@@ -27,12 +27,15 @@ class SendReadingPlanReminders extends Command
             $alreadyNotified = $plan->user->notifications()
                 ->where('type', ReadingPlanReminder::class)
                 ->where('data->reading_plan_id', $plan->id)
-                ->whereDate('created_at', today())
                 ->exists();
 
             if (! $alreadyNotified) {
                 $plan->user->notify(new ReadingPlanReminder($plan));
             }
+
+            $plan->update([
+                'status' => ReadingPlanStatus::Expired,
+            ]);
         });
 
         $this->info("{$plans->count()}件の読書計画を確認しました。");

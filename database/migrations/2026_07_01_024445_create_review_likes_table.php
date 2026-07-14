@@ -10,14 +10,14 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::create('review_likes', function (Blueprint $table) {
-        $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-        $table->foreignId('review_id')->constrained()->cascadeOnDelete();
+    {
+        Schema::create('review_likes', function (Blueprint $table) {
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('review_id')->constrained()->cascadeOnDelete();
 
-        $table->primary(['user_id', 'review_id']);
-    });
-}
+            $table->primary(['user_id', 'review_id']);
+        });
+    }
 
     /**
      * Reverse the migrations.

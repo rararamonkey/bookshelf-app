@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('status')->default(ReadingPlanStatus::Planned->value);
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
-
+            
             $table->unique(['user_id', 'book_id']);
         });
     }
