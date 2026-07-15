@@ -278,4 +278,237 @@ public function test_user_can_create_same_reading_plan_again_after_deleting_exis
         'target_date' => $newTargetDate,
     ]);
 }
+public function test_reading_plan_index_displays_only_logged_in_users_plans(): void
+{
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $ownBook = Book::factory()->create([
+        'title' => '自分の読書計画',
+    ]);
+
+    $otherBook = Book::factory()->create([
+        'title' => '他人の読書計画',
+    ]);
+
+    ReadingPlan::factory()->create([
+        'user_id' => $user->id,
+        'book_id' => $ownBook->id,
+        'status' => ReadingPlanStatus::Planned,
+    ]);
+
+    ReadingPlan::factory()->create([
+        'user_id' => $otherUser->id,
+        'book_id' => $otherBook->id,
+        'status' => ReadingPlanStatus::Planned,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get(route('reading-plans.index'));
+
+    $response->assertOk();
+    $response->assertSee('自分の読書計画');
+    $response->assertDontSee('他人の読書計画');
+}
+
+public function test_owner_can_update_planned_reading_plan_target_date(): void
+{
+    $user = User::factory()->create();
+
+    $plan = ReadingPlan::factory()->create([
+        'user_id' => $user->id,
+        'status' => ReadingPlanStatus::Planned,
+        'target_date' => today()->addWeek(),
+    ]);
+
+    $newTargetDate = today()->addWeeks(2)->format('Y-m-d');
+
+    $response = $this->actingAs($user)
+        ->put(route('reading-plans.update', $plan), [
+            'target_date' => $newTargetDate,
+        ]);
+
+    $response->assertRedirect(route('reading-plans.index'));
+
+    $this->assertDatabaseHas('reading_plans', [
+        'id' => $plan->id,
+        'target_date' => $newTargetDate,
+        'status' => ReadingPlanStatus::Planned->value,
+    ]);
+}
+
+public function test_expired_reading_plan_cannot_be_started(): void
+{
+    $user = User::factory()->create();
+
+    $plan = ReadingPlan::factory()->create([
+        'user_id' => $user->id,
+        'status' => ReadingPlanStatus::Expired,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('reading-plans.start', $plan));
+
+    $response->assertForbidden();
+
+    $this->assertSame(
+        ReadingPlanStatus::Expired,
+        $plan->fresh()->status
+    );
+}
+
+public function test_completed_reading_plan_cannot_be_started(): void
+{
+    $user = User::factory()->create();
+
+    $plan = ReadingPlan::factory()->create([
+        'user_id' => $user->id,
+        'status' => ReadingPlanStatus::Completed,
+        'completed_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('reading-plans.start', $plan));
+
+    $response->assertForbidden();
+
+    $this->assertSame(
+        ReadingPlanStatus::Completed,
+        $plan->fresh()->status
+    );
+}
+
+public function test_owner_can_complete_planned_reading_plan(): void
+{
+    $user = User::factory()->create();
+
+    $plan = ReadingPlan::factory()->create([
+        'user_id' => $user->id,
+        'status' => ReadingPlanStatus::Planned,
+        'completed_at' => null,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('reading-plans.complete', $plan));
+
+    $response->assertRedirect(route('reading-plans.index'));
+
+    $plan->refresh();
+
+    $this->assertSame(
+        ReadingPlanStatus::Completed,
+        $plan->status
+    );
+
+    $this->assertNotNull($plan->completed_at);
+}
+
+public function test_owner_can_complete_reading_status_plan(): void
+{
+    $user = User::factory()->create();
+
+    $plan = ReadingPlan::factory()->create([
+        'user_id' => $user->id,
+        'status' => ReadingPlanStatus::Reading,
+        'completed_at' => null,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('reading-plans.complete', $plan));
+
+    $response->assertRedirect(route('reading-plans.index'));
+
+    $this->assertSame(
+        ReadingPlanStatus::Completed,
+        $plan->fresh()->status
+    );
+}
+
+public function test_completed_reading_plan_cannot_be_completed_again(): void
+{
+    $user = User::factory()->create();
+
+    $completedAt = now()->subDay();
+
+    $plan = ReadingPlan::factory()->create([
+        'user_id' => $user->id,
+        'status' => ReadingPlanStatus::Completed,
+        'completed_at' => $completedAt,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('reading-plans.complete', $plan));
+
+    $response->assertForbidden();
+
+    $plan->refresh();
+
+    $this->assertSame(
+        ReadingPlanStatus::Completed,
+        $plan->status
+    );
+
+    $this->assertSame(
+    $completedAt->format('Y-m-d H:i:s'),
+    $plan->completed_at->format('Y-m-d H:i:s')
+);
+}
+
+public function test_other_user_cannot_update_reading_plan(): void
+{
+    $owner = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $plan = ReadingPlan::factory()->create([
+        'user_id' => $owner->id,
+        'status' => ReadingPlanStatus::Planned,
+    ]);
+
+    $response = $this->actingAs($otherUser)
+        ->put(route('reading-plans.update', $plan), [
+            'target_date' => today()->addMonth()->format('Y-m-d'),
+        ]);
+
+    $response->assertForbidden();
+}
+
+public function test_other_user_cannot_complete_reading_plan(): void
+{
+    $owner = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $plan = ReadingPlan::factory()->create([
+        'user_id' => $owner->id,
+        'status' => ReadingPlanStatus::Planned,
+    ]);
+
+    $response = $this->actingAs($otherUser)
+        ->post(route('reading-plans.complete', $plan));
+
+    $response->assertForbidden();
+
+    $this->assertSame(
+        ReadingPlanStatus::Planned,
+        $plan->fresh()->status
+    );
+}
+
+public function test_other_user_cannot_delete_reading_plan(): void
+{
+    $owner = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $plan = ReadingPlan::factory()->create([
+        'user_id' => $owner->id,
+    ]);
+
+    $response = $this->actingAs($otherUser)
+        ->delete(route('reading-plans.destroy', $plan));
+
+    $response->assertForbidden();
+
+    $this->assertDatabaseHas('reading_plans', [
+        'id' => $plan->id,
+    ]);
+}
 }
