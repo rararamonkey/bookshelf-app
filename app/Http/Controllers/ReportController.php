@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ReadingPlanStatus;
+use App\Models\ReadingPlan;
 use App\Models\Review;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -13,9 +15,16 @@ class ReportController extends Controller
      */
     public function index(): View
     {
+        $user = auth()->user();
+
         $reviews = Review::with('book.genres')
-            ->whereBelongsTo(auth()->user())
+            ->whereBelongsTo($user)
             ->get();
+
+        // 読了済みの読書計画数を取得
+        $completedBooks = ReadingPlan::where('user_id', $user->id)
+            ->where('status', ReadingPlanStatus::Completed)
+            ->count();
 
         $ratingDistribution = collect(range(1, 5))
             ->mapWithKeys(fn (int $rating): array => [
@@ -35,11 +44,16 @@ class ReportController extends Controller
             ->values();
 
         $genreRatings = $reviews
-            ->flatMap(fn (Review $review): Collection => $review->book->genres->map(fn ($genre): array => [
-                'id' => $genre->id,
-                'name' => $genre->name,
-                'rating' => $review->rating,
-            ]))
+            ->flatMap(
+                fn (Review $review): Collection =>
+                $review->book->genres->map(
+                    fn ($genre): array => [
+                        'id' => $genre->id,
+                        'name' => $genre->name,
+                        'rating' => $review->rating,
+                    ]
+                )
+            )
             ->groupBy('id')
             ->map(fn (Collection $items): array => [
                 'id' => $items->first()['id'],
@@ -54,8 +68,15 @@ class ReportController extends Controller
         $stats = [
             'summary' => [
                 'total_reviews' => $reviews->count(),
-                'books_read' => $reviews->pluck('book_id')->unique()->count(),
-                'average_rating' => round($reviews->avg('rating') ?? 0, 1),
+
+                // レビューを書いた書籍数ではなく、
+                // 読書計画で読了済みになった件数
+                'books_read' => $completedBooks,
+
+                'average_rating' => round(
+                    $reviews->avg('rating') ?? 0,
+                    1
+                ),
             ],
             'rating_distribution' => $ratingDistribution,
             'top_rated_books' => $topRatedBooks,
