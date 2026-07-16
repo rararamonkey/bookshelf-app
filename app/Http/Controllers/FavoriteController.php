@@ -22,7 +22,7 @@ class FavoriteController extends Controller
     {
         $result = $book->favoritedUsers()->toggle(auth()->id());
 
-        if (!empty($result['attached'])) {
+        if (! empty($result['attached'])) {
             return back()->with('success', 'お気に入りに追加しました。');
         }
 

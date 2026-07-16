@@ -6,51 +6,42 @@ use App\Http\Requests\BookStoreRequest;
 use App\Http\Requests\BookUpdateRequest;
 use App\Models\Book;
 use App\Models\Genre;
-use App\Http\Resources\Api\V1\BookDetailResource;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\View\View;
 
 class BookController extends Controller
 {
-    public function index()
-{
-    $query = Book::with(['genres', 'reviews']);
+    public function index(Request $request): View
+    {
+        $books = Book::query()
+            ->with(['genres', 'user'])
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
+            ->when($request->filled('keyword'), function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('title', 'like', '%'.$request->keyword.'%')
+                        ->orWhere('author', 'like', '%'.$request->keyword.'%');
+                });
+            })
+            ->when($request->filled('genre'), function ($query) use ($request) {
+                $query->whereHas('genres', function ($q) use ($request) {
+                    $q->where('genres.id', $request->genre);
+                });
+            })
+            ->when($request->sort === 'rating', fn ($q) => $q->orderByDesc('reviews_avg_rating'))
+            ->when($request->sort === 'title', fn ($q) => $q->orderBy('title'))
+            ->when($request->sort === 'oldest', fn ($q) => $q->oldest())
+            ->when(! in_array($request->sort, ['rating', 'title', 'oldest'], true), fn ($q) => $q->latest())
+            ->paginate(10)
+            ->withQueryString();
 
-    if (request()->filled('keyword')) {
-        $keyword = request('keyword');
+        $genres = Genre::orderBy('name')->get();
 
-        $query->where(function ($q) use ($keyword) {
-            $q->where('title', 'like', '%' . $keyword . '%')
-                ->orWhere('author', 'like', '%' . $keyword . '%');
-        });
+        return view('books.index', compact('books', 'genres'));
     }
 
-    if (request()->filled('genre')) {
-        $genreId = request('genre');
-
-        $query->whereHas('genres', function ($q) use ($genreId) {
-            $q->where('genres.id', $genreId);
-        });
-    }
-
-    $sort = request('sort', 'latest');
-
-match ($sort) {
-    'oldest' => $query->oldest(),
-    'title' => $query->orderBy('title'),
-    'rating' => $query->withAvg('reviews', 'rating')
-        ->orderByDesc('reviews_avg_rating'),
-    default => $query->latest(),
-};
-
-$books = $query->paginate(10)
-    ->withQueryString();
-
-    $genres = Genre::all();
-
-    return view('books.index', compact('books', 'genres'));
-}
-
-    public function show(Book $book)
+    public function show(Book $book): View
     {
         $book->load([
             'genres',
@@ -58,18 +49,14 @@ $books = $query->paginate(10)
             'reviews.likedByUsers',
         ]);
 
-        $alreadyReviewed = false;
-
-        if (auth()->check()) {
-            $alreadyReviewed = $book->reviews()
-                ->where('user_id', auth()->id())
-                ->exists();
-        }
+        $alreadyReviewed = auth()->check()
+            ? $book->reviews()->where('user_id', auth()->id())->exists()
+            : false;
 
         return view('books.show', compact('book', 'alreadyReviewed'));
     }
 
-    public function create()
+    public function create(): View
     {
         $genres = Genre::all();
 
@@ -94,7 +81,7 @@ $books = $query->paginate(10)
             ->with('success', '書籍を登録しました。');
     }
 
-    public function edit(Book $book)
+    public function edit(Book $book): View
     {
         $this->authorize('update', $book);
 
@@ -131,44 +118,41 @@ $books = $query->paginate(10)
         return redirect()->route('books.index')
             ->with('success', '書籍を削除しました。');
     }
-    public function searchByIsbn(string $isbn)
-{
-    if (! preg_match('/^\d{13}$/', $isbn)) {
+
+    public function fetchByIsbn(string $isbn)
+    {
+        if (! preg_match('/^\d{13}$/', $isbn)) {
+            return response()->json([
+                'error' => 'ISBNは13桁で入力してください。',
+            ], 422);
+        }
+
+        $response = Http::get(
+            "https://www.googleapis.com/books/v1/volumes?q=isbn:{$isbn}"
+        );
+
+        if (! $response->successful()) {
+            return response()->json([
+                'error' => '書籍情報の取得に失敗しました。',
+            ], 500);
+        }
+
+        $item = collect($response->json('items', []))->first();
+
+        if (! $item) {
+            return response()->json([
+                'error' => '書籍情報が見つかりませんでした。',
+            ], 404);
+        }
+
+        $info = $item['volumeInfo'] ?? [];
+
         return response()->json([
-            'message' => 'ISBNは13桁で入力してください。',
-        ], 422);
+            'title' => $info['title'] ?? '',
+            'author' => collect($info['authors'] ?? [])->join('、'),
+            'published_date' => $info['publishedDate'] ?? '',
+            'description' => $info['description'] ?? '',
+            'image_url' => $info['imageLinks']['thumbnail'] ?? '',
+        ]);
     }
-
-    $response = Http::get('https://www.googleapis.com/books/v1/volumes', [
-    'q' => 'isbn:' . $isbn,
-    'key' => config('services.google_books.key'),
-]);
-
-    if ($response->failed()) {
-        return response()->json([
-            'message' => '書籍情報の取得に失敗しました。',
-        ], 500);
-    }
-
-    $data = $response->json();
-
-    if (empty($data['items'])) {
-        return response()->json([
-            'message' => '該当する書籍が見つかりませんでした。',
-        ], 404);
-    }
-
-    $volumeInfo = $data['items'][0]['volumeInfo'];
-
-    return response()->json([
-        'isbn' => $isbn,
-        'title' => $volumeInfo['title'] ?? '',
-        'author' => isset($volumeInfo['authors'])
-            ? implode('、', $volumeInfo['authors'])
-            : '',
-        'published_date' => $volumeInfo['publishedDate'] ?? null,
-        'description' => $volumeInfo['description'] ?? '',
-        'image_url' => $volumeInfo['imageLinks']['thumbnail'] ?? null,
-    ]);
-}
 }

@@ -59,8 +59,8 @@
                             </div>
 
                             <p class="text-gray-600 mb-2"><strong>著者:</strong> {{ $book->author }}</p>
-                            <p class="text-gray-600 mb-2"><strong>ISBN:</strong> {{ $book->isbn }}</p>
-                            <p class="text-gray-600 mb-2"><strong>出版日:</strong> {{ $book->published_date }}</p>
+                            <p class="text-gray-600 mb-2"><strong>ISBN:</strong> {{ $book->isbn ?? '未登録' }}</p>
+                            <p class="text-gray-600 mb-2"><strong>出版日:</strong> {{ $book->published_date?->format('Y-m-d') ?? '未登録' }}</p>
                             <div class="mb-4">
                                 <strong>ジャンル:</strong>
                                 @foreach($book->genres as $genre)
@@ -98,25 +98,46 @@
                         <h2 class="text-xl font-bold mb-4">レビュー</h2>
 
                         @auth
-    @if (!$alreadyReviewed)
-
-        <!-- レビュー投稿フォーム -->
-        <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-            ...
-        </div>
-
-    @else
-        <div class="mb-6 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
-            この書籍にはすでにレビューを投稿しています。
-        </div>
-    @endif
-@else
-    <p class="mb-6 text-gray-600">
-        レビューを投稿するには
-        <a href="{{ route('login') }}" class="text-blue-600 hover:underline">ログイン</a>
-        してください。
-    </p>
-@endauth
+                            <!-- レビュー投稿フォーム -->
+                            <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+                                <h3 class="font-semibold mb-3">レビューを投稿</h3>
+                                <form action="{{ route('reviews.store', $book) }}" method="POST" novalidate>
+                                    @csrf
+                                    <div class="mb-4">
+                                        <label for="rating" class="block text-sm font-medium text-gray-700 mb-1">評価</label>
+                                        <select name="rating" id="rating" class="border-gray-300 rounded-md shadow-sm">
+                                            <option value="">選択してください</option>
+                                            @for($i = 5; $i >= 1; $i--)
+                                                <option value="{{ $i }}" {{ old('rating') == $i ? 'selected' : '' }}>
+                                                    {{ str_repeat('★', $i) }}{{ str_repeat('☆', 5 - $i) }} ({{ $i }})
+                                                </option>
+                                            @endfor
+                                        </select>
+                                        @error('rating')
+                                            <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">コメント</label>
+                                        <textarea name="comment" id="comment" rows="3"
+                                            class="border-gray-300 rounded-md shadow-sm w-full"
+                                            placeholder="この書籍の感想を書いてください">{{ old('comment') }}</textarea>
+                                        @error('comment')
+                                            <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div class="flex justify-end">
+                                        <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                            投稿する
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        @else
+                            <p class="mb-6 text-gray-600">
+                                レビューを投稿するには<a href="{{ route('login') }}" class="text-blue-600 hover:underline">ログイン</a>してください。
+                            </p>
+                        @endauth
 
                         <!-- レビュー一覧 -->
                         @if($book->reviews->count() > 0)

@@ -35,21 +35,10 @@
         <label for="isbn" class="block font-medium text-sm text-gray-700 mb-1">
             ISBN-13
         </label>
-
-        <div class="flex gap-2">
-            <input type="text" name="isbn" id="isbn" value="{{ old('isbn', $book->isbn ?? '') }}"
-                class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block w-full"
-                placeholder="9784000000000">
-
-            <button type="button" id="isbn-search"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md whitespace-nowrap">
-                ISBN検索
-            </button>
-        </div>
-
-        <p class="text-xs text-gray-500 mt-1">13桁のISBNコードを入力すると書籍情報を検索できます</p>
-        <p id="isbn-search-message" class="text-sm mt-1"></p>
-
+        <input type="text" name="isbn" id="isbn" value="{{ old('isbn', $book->isbn ?? '') }}"
+            class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block w-full"
+            placeholder="9784000000000">
+        <p class="text-xs text-gray-500 mt-1">13桁のISBNコードを入力してください</p>
         @error('isbn')
             <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
         @enderror
@@ -60,8 +49,7 @@
         <label for="published_date" class="block font-medium text-sm text-gray-700 mb-1">
             出版日
         </label>
-        <input type="date" name="published_date" id="published_date"
-            value="{{ old('published_date', $book->published_date ?? '') }}"
+        <input type="date" name="published_date" id="published_date" value="{{ old('published_date', isset($book->published_date) ? $book->published_date->format('Y-m-d') : '') }}"
             class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm block w-full">
         @error('published_date')
             <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
@@ -101,15 +89,15 @@
             ジャンル <span class="text-red-500">*</span>
         </label>
         <div class="bg-gray-50 rounded-md p-4">
-            @if ($genres->isEmpty())
+            @if($genres->isEmpty())
                 <p class="text-sm text-gray-500">ジャンルが登録されていません。先にジャンルを登録してください。</p>
             @else
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    @foreach ($genres as $genre)
+                    @foreach($genres as $genre)
                         <label class="inline-flex items-center cursor-pointer hover:bg-gray-100 p-2 rounded">
                             <input type="checkbox" name="genres[]" value="{{ $genre->id }}"
                                 class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
-                                @if (in_array($genre->id, old('genres', $bookGenreIds))) checked @endif>
+                                @if(in_array($genre->id, old('genres', $bookGenreIds))) checked @endif>
                             <span class="ml-2 text-sm text-gray-700">{{ $genre->name }}</span>
                         </label>
                     @endforeach
@@ -124,41 +112,3 @@
         @enderror
     </div>
 </div>
-
-<script>
-    document.getElementById('isbn-search')?.addEventListener('click', async () => {
-        const isbn = document.getElementById('isbn').value;
-        const message = document.getElementById('isbn-search-message');
-
-        message.textContent = '';
-
-        if (!/^\d{13}$/.test(isbn)) {
-            message.textContent = 'ISBNは13桁で入力してください。';
-            message.className = 'text-sm text-red-600 mt-1';
-            return;
-        }
-
-        try {
-            const response = await fetch(`/books/isbn/${isbn}`);
-            const data = await response.json();
-
-            if (!response.ok) {
-                message.textContent = data.message ?? '書籍情報の取得に失敗しました。';
-                message.className = 'text-sm text-red-600 mt-1';
-                return;
-            }
-
-            document.getElementById('title').value = data.title ?? '';
-            document.getElementById('author').value = data.author ?? '';
-            document.getElementById('published_date').value = data.published_date ?? '';
-            document.getElementById('description').value = data.description ?? '';
-            document.getElementById('image_url').value = data.image_url ?? '';
-
-            message.textContent = '書籍情報を取得しました。';
-            message.className = 'text-sm text-green-600 mt-1';
-        } catch (error) {
-            message.textContent = '通信エラーが発生しました。';
-            message.className = 'text-sm text-red-600 mt-1';
-        }
-    });
-</script>

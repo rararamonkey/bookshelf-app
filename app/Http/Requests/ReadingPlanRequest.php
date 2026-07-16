@@ -3,47 +3,44 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ReadingPlanRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
-{
-    return [
-        'book_id' => ['required', 'exists:books,id'],
-        'due_date' => ['required', 'date'],
-        'status' => ['sometimes', 'required', 'in:planned,reading,completed'],
-    ];
-}
+    {
+        return [
+            'book_id' => [
+                $this->isMethod('post') ? 'required' : 'sometimes',
+                'integer',
+                'exists:books,id',
+                Rule::unique('reading_plans', 'book_id')
+                    ->where(fn ($query) => $query
+                        ->where('user_id', auth()->id())
+                    ),
+            ],
+            'target_date' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+            ],
+        ];
+    }
 
-    public function edit(ReadingPlan $readingPlan)
-{
-    $this->authorize('update', $readingPlan);
-
-    $books = Book::orderBy('title')->get();
-
-    return view('reading-plans.edit', compact('readingPlan', 'books'));
-}
-
-public function update(ReadingPlanRequest $request, ReadingPlan $readingPlan)
-{
-    $this->authorize('update', $readingPlan);
-
-    $readingPlan->update($request->validated());
-
-    return redirect()->route('reading-plans.index')
-        ->with('success', '読書計画を更新しました。');
-}
+    public function messages(): array
+    {
+        return [
+            'book_id.required' => '書籍を選択してください。',
+            'book_id.exists' => '選択した書籍が存在しません。',
+            'book_id.unique' => 'この書籍の読書計画はすでに登録されています。',
+            'target_date.required' => '期日を入力してください。',
+            'target_date.date' => '期日は正しい日付で入力してください。',
+            'target_date.after_or_equal' => '期日は今日以降の日付を入力してください。',
+        ];
+    }
 }

@@ -2,41 +2,43 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\ReadingPlanStatus;
 use App\Models\ReadingPlan;
-use App\Notifications\ReadingPlanReminderNotification;
+use App\Notifications\ReadingPlanReminder;
 use Illuminate\Console\Command;
 
 class SendReadingPlanReminders extends Command
 {
     protected $signature = 'reading-plans:send-reminders';
 
-    protected $description = '読書計画の期限リマインダー通知を送信します';
+    protected $description = '期限を過ぎた読書計画に通知を送り、期限切れへ変更します。';
 
     public function handle(): int
     {
-        $tomorrowPlans = ReadingPlan::with(['user', 'book'])
-            ->where('status', '!=', 'completed')
-            ->whereDate('due_date', now()->addDay()->toDateString())
+        $plans = ReadingPlan::with(['user', 'book'])
+            ->whereIn('status', [
+                ReadingPlanStatus::Planned,
+                ReadingPlanStatus::Reading,
+            ])
+            ->whereDate('target_date', '<', today())
             ->get();
 
-        foreach ($tomorrowPlans as $plan) {
-            $plan->user->notify(
-                new ReadingPlanReminderNotification($plan, 'tomorrow')
-            );
-        }
+        $plans->each(function (ReadingPlan $plan): void {
+            $alreadyNotified = $plan->user->notifications()
+                ->where('type', ReadingPlanReminder::class)
+                ->where('data->reading_plan_id', $plan->id)
+                ->exists();
 
-        $overduePlans = ReadingPlan::with(['user', 'book'])
-            ->where('status', '!=', 'completed')
-            ->whereDate('due_date', '<', now()->toDateString())
-            ->get();
+            if (! $alreadyNotified) {
+                $plan->user->notify(new ReadingPlanReminder($plan));
+            }
 
-        foreach ($overduePlans as $plan) {
-            $plan->user->notify(
-                new ReadingPlanReminderNotification($plan, 'overdue')
-            );
-        }
+            $plan->update([
+                'status' => ReadingPlanStatus::Expired,
+            ]);
+        });
 
-        $this->info('読書計画リマインダー通知を送信しました。');
+        $this->info("{$plans->count()}件の読書計画を確認しました。");
 
         return self::SUCCESS;
     }

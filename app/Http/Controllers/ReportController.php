@@ -2,66 +2,86 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
-use App\Models\Genre;
-use Illuminate\Support\Facades\DB;
+use App\Enums\ReadingPlanStatus;
+use App\Models\ReadingPlan;
+use App\Models\Review;
+use Illuminate\Support\Collection;
+use Illuminate\View\View;
 
 class ReportController extends Controller
 {
-    public function index()
+    /**
+     * ログインユーザーの読書レポートを表示する。
+     */
+    public function index(): View
     {
-        $user = Auth::user();
+        $user = auth()->user();
 
-        $totalReviews = $user->reviews()->count();
+        $reviews = Review::with('book.genres')
+            ->whereBelongsTo($user)
+            ->get();
 
-        $completedBooks = $user->reviews()
-            ->distinct('book_id')
-            ->count('book_id');
-
-        $averageRating = round(
-            $user->reviews()->avg('rating') ?? 0,
-            1
-        );
-
-        $ratingDistribution = [];
-
-        for ($i = 5; $i >= 1; $i--) {
-        $ratingDistribution[$i] = $user->reviews()
-            ->where('rating', $i)
+        // 読了済みの読書計画数を取得
+        $completedBooks = ReadingPlan::where('user_id', $user->id)
+            ->where('status', ReadingPlanStatus::Completed)
             ->count();
 
-        $topBooks = $user->reviews()
-            ->with('book')
-            ->where('rating', '>=', 4)
-            ->orderByDesc('rating')
-            ->latest()
+        $ratingDistribution = collect(range(1, 5))
+            ->mapWithKeys(fn (int $rating): array => [
+                $rating => $reviews->where('rating', $rating)->count(),
+            ]);
+
+        $topRatedBooks = $reviews
+            ->filter(fn (Review $review): bool => $review->rating >= 4)
+            ->sortByDesc('rating')
             ->take(5)
-            ->get();
+            ->map(fn (Review $review): array => [
+                'id' => $review->book->id,
+                'title' => $review->book->title,
+                'author' => $review->book->author,
+                'rating' => $review->rating,
+            ])
+            ->values();
 
-        $genreRatings = Genre::query()
-            ->join('book_genre', 'genres.id', '=', 'book_genre.genre_id')
-            ->join('books', 'book_genre.book_id', '=', 'books.id')
-            ->join('reviews', 'books.id', '=', 'reviews.book_id')
-            ->where('reviews.user_id', $user->id)
-            ->select(
-        'genres.id',
-        'genres.name',
-        DB::raw('AVG(reviews.rating) as average_rating'),
-        DB::raw('COUNT(reviews.id) as reviews_count')
-    )
-            ->groupBy('genres.id', 'genres.name')
-            ->orderByDesc('average_rating')
-            ->limit(5)
-            ->get();
-}
+        $genreRatings = $reviews
+            ->flatMap(
+                fn (Review $review): Collection => $review->book->genres->map(
+                    fn ($genre): array => [
+                        'id' => $genre->id,
+                        'name' => $genre->name,
+                        'rating' => $review->rating,
+                    ]
+                )
+            )
+            ->groupBy('id')
+            ->map(fn (Collection $items): array => [
+                'id' => $items->first()['id'],
+                'name' => $items->first()['name'],
+                'count' => $items->count(),
+                'average_rating' => round($items->avg('rating'), 1),
+            ])
+            ->sortByDesc('average_rating')
+            ->take(5)
+            ->values();
 
-        return view('reports.index', compact(
-            'totalReviews',
-            'completedBooks',
-            'averageRating',
-            'ratingDistribution',
-            'topBooks',
-            'genreRatings'
-        ));
+        $stats = [
+            'summary' => [
+                'total_reviews' => $reviews->count(),
+
+                // レビューを書いた書籍数ではなく、
+                // 読書計画で読了済みになった件数
+                'books_read' => $completedBooks,
+
+                'average_rating' => round(
+                    $reviews->avg('rating') ?? 0,
+                    1
+                ),
+            ],
+            'rating_distribution' => $ratingDistribution,
+            'top_rated_books' => $topRatedBooks,
+            'genre_ratings' => $genreRatings,
+        ];
+
+        return view('reports.index', compact('stats'));
     }
 }

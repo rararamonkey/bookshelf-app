@@ -2,93 +2,143 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\ReadingPlan;
-use App\Models\Book;
+use App\Enums\ReadingPlanStatus;
 use App\Http\Requests\ReadingPlanRequest;
+use App\Models\Book;
+use App\Models\ReadingPlan;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class ReadingPlanController extends Controller
 {
-    public function index(Request $request)
-{
-    $query = auth()->user()
-        ->readingPlans()
-        ->with('book');
+    /**
+     * ログインユーザーの読書計画一覧を表示する。
+     */
+    public function index(Request $request): View
+    {
+        $currentStatus = $request->query('status');
 
-    if ($request->filled('status')) {
-        $query->where('status', $request->status);
+        $readingPlans = ReadingPlan::with('book.genres')
+            ->whereBelongsTo($request->user())
+            ->when($currentStatus, function ($query, string $currentStatus) {
+                $query->where('status', $currentStatus);
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('reading-plans.index', compact('readingPlans', 'currentStatus'));
     }
 
-    $readingPlans = $query
-        ->latest()
-        ->paginate(10)
-        ->withQueryString();
+    /**
+     * 読書計画作成画面を表示する。
+     */
+    public function create(): View
+    {
+        $books = Book::query()
+            ->orderBy('title')
+            ->get();
 
-    return view('reading-plans.index', compact('readingPlans'));
-}
+        return view('reading-plans.create', compact('books'));
+    }
 
-public function create()
-{
-    $books = Book::orderBy('title')->get();
+    /**
+     * 読書計画を登録する。
+     */
+    public function store(ReadingPlanRequest $request): RedirectResponse
+    {
+        $request->user()->readingPlans()->create([
+            'book_id' => $request->integer('book_id'),
+            'target_date' => $request->date('target_date'),
+            'status' => ReadingPlanStatus::Planned,
+        ]);
 
-    return view('reading-plans.create', compact('books'));
-}
+        return redirect()
+            ->route('reading-plans.index')
+            ->with('success', '読書計画を登録しました。');
+    }
 
-public function store(ReadingPlanRequest $request)
-{
-    auth()->user()->readingPlans()->create([
-        'book_id' => $request->book_id,
-        'due_date' => $request->due_date,
-        'status' => 'planned',
-    ]);
+    /**
+     * 読書計画編集画面を表示する。
+     */
+    public function edit(ReadingPlan $readingPlan): View
+    {
+        $this->authorize('update', $readingPlan);
 
-    return redirect()->route('reading-plans.index')
-        ->with('success', '読書計画を登録しました。');
-}
+        $readingPlan->load('book');
 
-public function updateStatus(ReadingPlan $readingPlan)
-{
-    $this->authorize('update', $readingPlan);
+        return view('reading-plans.edit', compact('readingPlan'));
+    }
 
-    $nextStatus = match ($readingPlan->status) {
-        'planned' => 'reading',
-        'reading' => 'completed',
-        default => 'completed',
-    };
+    /**
+     * 読書計画を更新する。
+     */
+    public function update(
+        ReadingPlanRequest $request,
+        ReadingPlan $readingPlan
+    ): RedirectResponse {
+        $this->authorize('update', $readingPlan);
 
-    $readingPlan->update([
-        'status' => $nextStatus,
-    ]);
+        $updateData = [
+            'target_date' => $request->date('target_date'),
+        ];
 
-    return redirect()
-        ->route('reading-plans.index')
-        ->with('success', '読書状態を更新しました。');
-}
-public function edit(ReadingPlan $readingPlan)
-{
-    $this->authorize('update', $readingPlan);
+        if ($readingPlan->status === ReadingPlanStatus::Expired) {
+            $updateData['status'] = ReadingPlanStatus::Planned;
+        }
 
-    $books = Book::orderBy('title')->get();
+        $readingPlan->update($updateData);
 
-    return view('reading-plans.edit', compact('readingPlan', 'books'));
-}
+        return redirect()
+            ->route('reading-plans.index')
+            ->with('success', '読書計画を更新しました。');
+    }
 
-public function update(ReadingPlanRequest $request, ReadingPlan $readingPlan)
-{
-    $this->authorize('update', $readingPlan);
+    /**
+     * 読書を開始する。
+     */
+    public function start(ReadingPlan $readingPlan): RedirectResponse
+    {
+        $this->authorize('start', $readingPlan);
 
-    $readingPlan->update($request->validated());
+        $readingPlan->update([
+            'status' => ReadingPlanStatus::Reading,
+        ]);
 
-    return redirect()->route('reading-plans.index')
-        ->with('success', '読書計画を更新しました。');
-}
-public function destroy(ReadingPlan $readingPlan)
-{
-    $this->authorize('delete', $readingPlan);
+        return redirect()
+            ->route('reading-plans.index')
+            ->with('success', '読書を開始しました。');
+    }
 
-    $readingPlan->delete();
+    /**
+     * 読書計画を読了にする。
+     */
+    public function complete(ReadingPlan $readingPlan): RedirectResponse
+    {
+        $this->authorize('complete', $readingPlan);
 
-    return redirect()->route('reading-plans.index')
-        ->with('success', '読書計画を削除しました。');
-}
+        $readingPlan->update([
+            'status' => ReadingPlanStatus::Completed,
+            'completed_at' => now(),
+        ]);
+
+        return redirect()
+            ->route('reading-plans.index')
+            ->with('success', '読書計画を読了にしました。');
+    }
+
+    /**
+     * 読書計画を削除する。
+     */
+    public function destroy(ReadingPlan $readingPlan): RedirectResponse
+    {
+        $this->authorize('delete', $readingPlan);
+
+        $readingPlan->delete();
+
+        return redirect()
+            ->route('reading-plans.index')
+            ->with('success', '読書計画を削除しました。');
+    }
 }

@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class NotificationController extends Controller
 {
-    public function index()
+    /**
+     * 通知一覧を表示する。
+     */
+    public function index(): View
     {
         $notifications = auth()->user()
             ->notifications()
@@ -16,7 +20,10 @@ class NotificationController extends Controller
         return view('notifications.index', compact('notifications'));
     }
 
-    public function markAsRead(string $id)
+    /**
+     * 通知を既読にする。
+     */
+    public function read(string $id): RedirectResponse
     {
         $notification = auth()->user()
             ->notifications()
@@ -25,7 +32,8 @@ class NotificationController extends Controller
 
         $notification->markAsRead();
 
-        return redirect()->route('notifications.index')
+        return redirect()
+            ->route('notifications.index')
             ->with('success', '通知を既読にしました。');
     }
 }
