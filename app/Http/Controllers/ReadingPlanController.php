@@ -75,40 +75,41 @@ class ReadingPlanController extends Controller
      * 読書計画を更新する。
      */
     public function update(
-    ReadingPlanRequest $request,
-    ReadingPlan $readingPlan
-): RedirectResponse {
-    $this->authorize('update', $readingPlan);
+        ReadingPlanRequest $request,
+        ReadingPlan $readingPlan
+    ): RedirectResponse {
+        $this->authorize('update', $readingPlan);
 
-    $updateData = [
-        'target_date' => $request->date('target_date'),
-    ];
+        $updateData = [
+            'target_date' => $request->date('target_date'),
+        ];
 
-    if ($readingPlan->status === ReadingPlanStatus::Expired) {
-        $updateData['status'] = ReadingPlanStatus::Planned;
+        if ($readingPlan->status === ReadingPlanStatus::Expired) {
+            $updateData['status'] = ReadingPlanStatus::Planned;
+        }
+
+        $readingPlan->update($updateData);
+
+        return redirect()
+            ->route('reading-plans.index')
+            ->with('success', '読書計画を更新しました。');
     }
 
-    $readingPlan->update($updateData);
-
-    return redirect()
-        ->route('reading-plans.index')
-        ->with('success', '読書計画を更新しました。');
-}
     /**
- * 読書を開始する。
- */
-public function start(ReadingPlan $readingPlan): RedirectResponse
-{
-    $this->authorize('start', $readingPlan);
+     * 読書を開始する。
+     */
+    public function start(ReadingPlan $readingPlan): RedirectResponse
+    {
+        $this->authorize('start', $readingPlan);
 
-    $readingPlan->update([
-        'status' => ReadingPlanStatus::Reading,
-    ]);
+        $readingPlan->update([
+            'status' => ReadingPlanStatus::Reading,
+        ]);
 
-    return redirect()
-        ->route('reading-plans.index')
-        ->with('success', '読書を開始しました。');
-}
+        return redirect()
+            ->route('reading-plans.index')
+            ->with('success', '読書を開始しました。');
+    }
 
     /**
      * 読書計画を読了にする。

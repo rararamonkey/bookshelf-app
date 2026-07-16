@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ReadingPlanStatus;
 use App\Models\Book;
 use App\Models\Genre;
+use App\Models\ReadingPlan;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use App\Enums\ReadingPlanStatus;
-use App\Models\ReadingPlan;
 
 class ReportTest extends TestCase
 {
@@ -52,28 +52,28 @@ class ReportTest extends TestCase
     }
 
     public function test_report_displays_completed_reading_plan_count(): void
-{
-    $user = User::factory()->create();
+    {
+        $user = User::factory()->create();
 
-    ReadingPlan::factory()->count(2)->create([
-        'user_id' => $user->id,
-        'status' => ReadingPlanStatus::Completed,
-        'completed_at' => now(),
-    ]);
+        ReadingPlan::factory()->count(2)->create([
+            'user_id' => $user->id,
+            'status' => ReadingPlanStatus::Completed,
+            'completed_at' => now(),
+        ]);
 
-    ReadingPlan::factory()->create([
-        'user_id' => $user->id,
-        'status' => ReadingPlanStatus::Reading,
-        'completed_at' => null,
-    ]);
+        ReadingPlan::factory()->create([
+            'user_id' => $user->id,
+            'status' => ReadingPlanStatus::Reading,
+            'completed_at' => null,
+        ]);
 
-    $response = $this->actingAs($user)
-        ->get(route('reports.index'));
+        $response = $this->actingAs($user)
+            ->get(route('reports.index'));
 
-    $response->assertViewHas('stats', function (array $stats): bool {
-        return $stats['summary']['books_read'] === 2;
-    });
-}
+        $response->assertViewHas('stats', function (array $stats): bool {
+            return $stats['summary']['books_read'] === 2;
+        });
+    }
 
     public function test_report_displays_average_rating(): void
     {
@@ -219,32 +219,33 @@ class ReportTest extends TestCase
                 && $stats['genre_ratings']->isEmpty();
         });
     }
+
     public function test_report_counts_only_own_completed_reading_plans(): void
-{
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
 
-    // 自分の読了済み：2冊
-    ReadingPlan::factory()->count(2)->create([
-        'user_id' => $user->id,
-        'status' => ReadingPlanStatus::Completed,
-        'completed_at' => now(),
-    ]);
+        // 自分の読了済み：2冊
+        ReadingPlan::factory()->count(2)->create([
+            'user_id' => $user->id,
+            'status' => ReadingPlanStatus::Completed,
+            'completed_at' => now(),
+        ]);
 
-    // 他人の読了済み：3冊
-    ReadingPlan::factory()->count(3)->create([
-        'user_id' => $otherUser->id,
-        'status' => ReadingPlanStatus::Completed,
-        'completed_at' => now(),
-    ]);
+        // 他人の読了済み：3冊
+        ReadingPlan::factory()->count(3)->create([
+            'user_id' => $otherUser->id,
+            'status' => ReadingPlanStatus::Completed,
+            'completed_at' => now(),
+        ]);
 
-    $response = $this->actingAs($user)
-        ->get(route('reports.index'));
+        $response = $this->actingAs($user)
+            ->get(route('reports.index'));
 
-    $response->assertOk();
+        $response->assertOk();
 
-    $response->assertViewHas('stats', function (array $stats): bool {
-        return $stats['summary']['books_read'] === 2;
-    });
-}
+        $response->assertViewHas('stats', function (array $stats): bool {
+            return $stats['summary']['books_read'] === 2;
+        });
+    }
 }

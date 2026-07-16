@@ -23,8 +23,8 @@ class BookController extends Controller
             ->withCount('reviews')
             ->when($request->filled('keyword'), function ($query) use ($request): void {
                 $query->where(function ($q) use ($request): void {
-                    $q->where('title', 'like', '%' . $request->keyword . '%')
-                        ->orWhere('author', 'like', '%' . $request->keyword . '%');
+                    $q->where('title', 'like', '%'.$request->keyword.'%')
+                        ->orWhere('author', 'like', '%'.$request->keyword.'%');
                 });
             })
             ->when($request->filled('genre_id'), function ($query) use ($request): void {

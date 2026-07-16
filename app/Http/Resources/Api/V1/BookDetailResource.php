@@ -27,8 +27,8 @@ class BookDetailResource extends JsonResource
 
             // 次にレビューも追加する
             'reviews' => ReviewResource::collection(
-    $this->whenLoaded('reviews')
-),
+                $this->whenLoaded('reviews')
+            ),
         ];
     }
 }

@@ -27,48 +27,50 @@ class FavoriteTest extends TestCase
             'book_id' => $book->id,
         ]);
     }
+
     public function test_user_can_unfavorite_book(): void
-{
-    $user = User::factory()->create();
+    {
+        $user = User::factory()->create();
 
-    $book = Book::factory()->create();
+        $book = Book::factory()->create();
 
-    // 1回目：お気に入り登録
-    $this->actingAs($user)
-        ->post("/books/{$book->id}/favorite");
+        // 1回目：お気に入り登録
+        $this->actingAs($user)
+            ->post("/books/{$book->id}/favorite");
 
-    // 2回目：お気に入り解除
-    $response = $this->actingAs($user)
-        ->post("/books/{$book->id}/favorite");
+        // 2回目：お気に入り解除
+        $response = $this->actingAs($user)
+            ->post("/books/{$book->id}/favorite");
 
-    $response->assertRedirect();
+        $response->assertRedirect();
 
-    $this->assertDatabaseMissing('favorites', [
-        'user_id' => $user->id,
-        'book_id' => $book->id,
-    ]);
-}
-public function test_user_can_view_own_favorites(): void
-{
-    $user = User::factory()->create();
-    $other = User::factory()->create();
+        $this->assertDatabaseMissing('favorites', [
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+        ]);
+    }
 
-    $book1 = Book::factory()->create([
-        'title' => '自分のお気に入り',
-    ]);
+    public function test_user_can_view_own_favorites(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
 
-    $book2 = Book::factory()->create([
-        'title' => '他人のお気に入り',
-    ]);
+        $book1 = Book::factory()->create([
+            'title' => '自分のお気に入り',
+        ]);
 
-    $user->favoriteBooks()->attach($book1->id);
-    $other->favoriteBooks()->attach($book2->id);
+        $book2 = Book::factory()->create([
+            'title' => '他人のお気に入り',
+        ]);
 
-    $response = $this->actingAs($user)
-        ->get('/favorites');
+        $user->favoriteBooks()->attach($book1->id);
+        $other->favoriteBooks()->attach($book2->id);
 
-    $response->assertStatus(200);
-    $response->assertSee('自分のお気に入り');
-    $response->assertDontSee('他人のお気に入り');
-}
+        $response = $this->actingAs($user)
+            ->get('/favorites');
+
+        $response->assertStatus(200);
+        $response->assertSee('自分のお気に入り');
+        $response->assertDontSee('他人のお気に入り');
+    }
 }

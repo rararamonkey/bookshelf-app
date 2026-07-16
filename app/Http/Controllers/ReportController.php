@@ -45,8 +45,7 @@ class ReportController extends Controller
 
         $genreRatings = $reviews
             ->flatMap(
-                fn (Review $review): Collection =>
-                $review->book->genres->map(
+                fn (Review $review): Collection => $review->book->genres->map(
                     fn ($genre): array => [
                         'id' => $genre->id,
                         'name' => $genre->name,

@@ -150,49 +150,49 @@ class BasicRequirementTest extends TestCase
     }
 
     public function test_same_user_cannot_review_same_book_twice(): void
-{
-    $user = User::factory()->create();
-    $book = Book::factory()->create();
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
 
-    Review::factory()->create([
-        'user_id' => $user->id,
-        'book_id' => $book->id,
-        'rating' => 4,
-        'comment' => '1回目のレビュー',
-    ]);
+        Review::factory()->create([
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'rating' => 4,
+            'comment' => '1回目のレビュー',
+        ]);
 
-    $response = $this->actingAs($user)
-        ->post(route('reviews.store', $book), [
+        $response = $this->actingAs($user)
+            ->post(route('reviews.store', $book), [
+                'rating' => 5,
+                'comment' => '2回目のレビュー',
+            ]);
+
+        $response->assertRedirect(route('books.show', $book));
+
+        $response->assertSessionHas(
+            'error',
+            'この書籍にはすでにレビューを投稿しています。'
+        );
+
+        $this->assertSame(
+            1,
+            Review::where('user_id', $user->id)
+                ->where('book_id', $book->id)
+                ->count()
+        );
+
+        $this->assertDatabaseHas('reviews', [
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'rating' => 4,
+            'comment' => '1回目のレビュー',
+        ]);
+
+        $this->assertDatabaseMissing('reviews', [
+            'user_id' => $user->id,
+            'book_id' => $book->id,
             'rating' => 5,
             'comment' => '2回目のレビュー',
         ]);
-
-    $response->assertRedirect(route('books.show', $book));
-
-    $response->assertSessionHas(
-        'error',
-        'この書籍にはすでにレビューを投稿しています。'
-    );
-
-    $this->assertSame(
-        1,
-        Review::where('user_id', $user->id)
-            ->where('book_id', $book->id)
-            ->count()
-    );
-
-    $this->assertDatabaseHas('reviews', [
-        'user_id' => $user->id,
-        'book_id' => $book->id,
-        'rating' => 4,
-        'comment' => '1回目のレビュー',
-    ]);
-
-    $this->assertDatabaseMissing('reviews', [
-        'user_id' => $user->id,
-        'book_id' => $book->id,
-        'rating' => 5,
-        'comment' => '2回目のレビュー',
-    ]);
-}
+    }
 }

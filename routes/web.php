@@ -3,10 +3,10 @@
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\GenreController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RankingController;
 use App\Http\Controllers\ReadingPlanController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 
@@ -105,9 +105,9 @@ Route::middleware('auth')->group(function () {
 
     Route::put('/reading-plans/{readingPlan}', [ReadingPlanController::class, 'update'])
         ->name('reading-plans.update');
-        
+
     Route::post('/reading-plans/{readingPlan}/start', [ReadingPlanController::class, 'start'])
-    ->name('reading-plans.start');
+        ->name('reading-plans.start');
 
     Route::post('/reading-plans/{readingPlan}/complete', [ReadingPlanController::class, 'complete'])
         ->name('reading-plans.complete');

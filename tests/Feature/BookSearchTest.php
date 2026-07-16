@@ -73,7 +73,7 @@ class BookSearchTest extends TestCase
 
         $response = $this->get(
             "/books?genre={$programmingGenre->id}"
-       );
+        );
 
         $response->assertOk();
         $response->assertSee('Laravel実践');

@@ -9,26 +9,26 @@ use App\Models\Review;
 class ReviewController extends Controller
 {
     public function store(ReviewRequest $request, Book $book)
-{
-    $alreadyReviewed = Review::where('user_id', auth()->id())
-        ->where('book_id', $book->id)
-        ->exists();
+    {
+        $alreadyReviewed = Review::where('user_id', auth()->id())
+            ->where('book_id', $book->id)
+            ->exists();
 
-    if ($alreadyReviewed) {
+        if ($alreadyReviewed) {
+            return redirect()->route('books.show', $book)
+                ->with('error', 'この書籍にはすでにレビューを投稿しています。');
+        }
+
+        Review::create([
+            'user_id' => auth()->id(),
+            'book_id' => $book->id,
+            'rating' => $request->rating,
+            'comment' => $request->comment,
+        ]);
+
         return redirect()->route('books.show', $book)
-            ->with('error', 'この書籍にはすでにレビューを投稿しています。');
+            ->with('success', 'レビューを投稿しました。');
     }
-
-    Review::create([
-        'user_id' => auth()->id(),
-        'book_id' => $book->id,
-        'rating' => $request->rating,
-        'comment' => $request->comment,
-    ]);
-
-    return redirect()->route('books.show', $book)
-        ->with('success', 'レビューを投稿しました。');
-}
 
     public function edit(Review $review)
     {
@@ -63,13 +63,13 @@ class ReviewController extends Controller
     }
 
     public function like(Review $review)
-{
-    $result = $review->likedByUsers()->toggle(auth()->id());
+    {
+        $result = $review->likedByUsers()->toggle(auth()->id());
 
-    if (!empty($result['attached'])) {
-        return back()->with('success', 'いいねしました。');
+        if (! empty($result['attached'])) {
+            return back()->with('success', 'いいねしました。');
+        }
+
+        return back()->with('success', 'いいねを解除しました。');
     }
-
-    return back()->with('success', 'いいねを解除しました。');
-}
 }

@@ -20,8 +20,8 @@ class BookController extends Controller
             ->withAvg('reviews', 'rating')
             ->when($request->filled('keyword'), function ($query) use ($request) {
                 $query->where(function ($q) use ($request) {
-                    $q->where('title', 'like', '%' . $request->keyword . '%')
-                        ->orWhere('author', 'like', '%' . $request->keyword . '%');
+                    $q->where('title', 'like', '%'.$request->keyword.'%')
+                        ->orWhere('author', 'like', '%'.$request->keyword.'%');
                 });
             })
             ->when($request->filled('genre'), function ($query) use ($request) {
@@ -120,39 +120,39 @@ class BookController extends Controller
     }
 
     public function fetchByIsbn(string $isbn)
-{
-    if (! preg_match('/^\d{13}$/', $isbn)) {
+    {
+        if (! preg_match('/^\d{13}$/', $isbn)) {
+            return response()->json([
+                'error' => 'ISBNは13桁で入力してください。',
+            ], 422);
+        }
+
+        $response = Http::get(
+            "https://www.googleapis.com/books/v1/volumes?q=isbn:{$isbn}"
+        );
+
+        if (! $response->successful()) {
+            return response()->json([
+                'error' => '書籍情報の取得に失敗しました。',
+            ], 500);
+        }
+
+        $item = collect($response->json('items', []))->first();
+
+        if (! $item) {
+            return response()->json([
+                'error' => '書籍情報が見つかりませんでした。',
+            ], 404);
+        }
+
+        $info = $item['volumeInfo'] ?? [];
+
         return response()->json([
-            'error' => 'ISBNは13桁で入力してください。',
-        ], 422);
+            'title' => $info['title'] ?? '',
+            'author' => collect($info['authors'] ?? [])->join('、'),
+            'published_date' => $info['publishedDate'] ?? '',
+            'description' => $info['description'] ?? '',
+            'image_url' => $info['imageLinks']['thumbnail'] ?? '',
+        ]);
     }
-
-    $response = Http::get(
-        "https://www.googleapis.com/books/v1/volumes?q=isbn:{$isbn}"
-    );
-
-    if (! $response->successful()) {
-        return response()->json([
-            'error' => '書籍情報の取得に失敗しました。',
-        ], 500);
-    }
-
-    $item = collect($response->json('items', []))->first();
-
-    if (! $item) {
-        return response()->json([
-            'error' => '書籍情報が見つかりませんでした。',
-        ], 404);
-    }
-
-    $info = $item['volumeInfo'] ?? [];
-
-    return response()->json([
-        'title' => $info['title'] ?? '',
-        'author' => collect($info['authors'] ?? [])->join('、'),
-        'published_date' => $info['publishedDate'] ?? '',
-        'description' => $info['description'] ?? '',
-        'image_url' => $info['imageLinks']['thumbnail'] ?? '',
-    ]);
-}
 }

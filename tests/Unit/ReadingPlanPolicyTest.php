@@ -23,7 +23,7 @@ class ReadingPlanPolicyTest extends TestCase
             'status' => ReadingPlanStatus::Planned,
         ]);
 
-        $policy = new ReadingPlanPolicy();
+        $policy = new ReadingPlanPolicy;
 
         $this->assertTrue($policy->update($user, $plan));
     }
@@ -37,7 +37,7 @@ class ReadingPlanPolicyTest extends TestCase
             'status' => ReadingPlanStatus::Reading,
         ]);
 
-        $policy = new ReadingPlanPolicy();
+        $policy = new ReadingPlanPolicy;
 
         $this->assertTrue($policy->update($user, $plan));
     }
@@ -51,7 +51,7 @@ class ReadingPlanPolicyTest extends TestCase
             'status' => ReadingPlanStatus::Expired,
         ]);
 
-        $policy = new ReadingPlanPolicy();
+        $policy = new ReadingPlanPolicy;
 
         $this->assertTrue($policy->update($user, $plan));
     }
@@ -66,7 +66,7 @@ class ReadingPlanPolicyTest extends TestCase
             'completed_at' => now(),
         ]);
 
-        $policy = new ReadingPlanPolicy();
+        $policy = new ReadingPlanPolicy;
 
         $this->assertFalse($policy->update($user, $plan));
     }
@@ -86,7 +86,7 @@ class ReadingPlanPolicyTest extends TestCase
             'status' => ReadingPlanStatus::Reading,
         ]);
 
-        $policy = new ReadingPlanPolicy();
+        $policy = new ReadingPlanPolicy;
 
         $this->assertTrue($policy->start($user, $planned));
         $this->assertFalse($policy->start($user, $reading));
@@ -95,7 +95,7 @@ class ReadingPlanPolicyTest extends TestCase
     public function test_owner_can_complete_planned_reading_and_expired_plans(): void
     {
         $user = User::factory()->create();
-        $policy = new ReadingPlanPolicy();
+        $policy = new ReadingPlanPolicy;
 
         foreach ([
             ReadingPlanStatus::Planned,
@@ -122,7 +122,7 @@ class ReadingPlanPolicyTest extends TestCase
             'completed_at' => now(),
         ]);
 
-        $policy = new ReadingPlanPolicy();
+        $policy = new ReadingPlanPolicy;
 
         $this->assertFalse($policy->complete($user, $plan));
     }
@@ -137,7 +137,7 @@ class ReadingPlanPolicyTest extends TestCase
             'status' => ReadingPlanStatus::Planned,
         ]);
 
-        $policy = new ReadingPlanPolicy();
+        $policy = new ReadingPlanPolicy;
 
         $this->assertFalse($policy->update($otherUser, $plan));
         $this->assertFalse($policy->start($otherUser, $plan));

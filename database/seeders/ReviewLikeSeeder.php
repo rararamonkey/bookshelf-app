@@ -15,9 +15,9 @@ class ReviewLikeSeeder extends Seeder
 
         foreach ($reviews as $review) {
             $likeUsers = $users
-    ->where('id', '!=', $review->user_id)
-    ->shuffle()
-    ->take(rand(0, 3));
+                ->where('id', '!=', $review->user_id)
+                ->shuffle()
+                ->take(rand(0, 3));
 
             foreach ($likeUsers as $user) {
                 $review->likedByUsers()->syncWithoutDetaching($user->id);

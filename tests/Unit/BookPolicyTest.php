@@ -20,7 +20,7 @@ class BookPolicyTest extends TestCase
             'user_id' => $owner->id,
         ]);
 
-        $policy = new BookPolicy();
+        $policy = new BookPolicy;
 
         $this->assertTrue($policy->update($owner, $book));
     }
@@ -34,7 +34,7 @@ class BookPolicyTest extends TestCase
             'user_id' => $owner->id,
         ]);
 
-        $policy = new BookPolicy();
+        $policy = new BookPolicy;
 
         $this->assertFalse($policy->update($otherUser, $book));
     }
@@ -47,7 +47,7 @@ class BookPolicyTest extends TestCase
             'user_id' => $owner->id,
         ]);
 
-        $policy = new BookPolicy();
+        $policy = new BookPolicy;
 
         $this->assertTrue($policy->delete($owner, $book));
     }
@@ -61,7 +61,7 @@ class BookPolicyTest extends TestCase
             'user_id' => $owner->id,
         ]);
 
-        $policy = new BookPolicy();
+        $policy = new BookPolicy;
 
         $this->assertFalse($policy->delete($otherUser, $book));
     }

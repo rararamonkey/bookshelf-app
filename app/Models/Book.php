@@ -20,8 +20,8 @@ class Book extends Model
     ];
 
     protected $casts = [
-    'published_date' => 'date',
-];
+        'published_date' => 'date',
+    ];
 
     public function user()
     {

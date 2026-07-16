@@ -20,7 +20,7 @@ class ReviewPolicyTest extends TestCase
             'user_id' => $author->id,
         ]);
 
-        $policy = new ReviewPolicy();
+        $policy = new ReviewPolicy;
 
         $this->assertTrue($policy->update($author, $review));
     }
@@ -34,7 +34,7 @@ class ReviewPolicyTest extends TestCase
             'user_id' => $author->id,
         ]);
 
-        $policy = new ReviewPolicy();
+        $policy = new ReviewPolicy;
 
         $this->assertFalse($policy->update($otherUser, $review));
     }
@@ -47,7 +47,7 @@ class ReviewPolicyTest extends TestCase
             'user_id' => $author->id,
         ]);
 
-        $policy = new ReviewPolicy();
+        $policy = new ReviewPolicy;
 
         $this->assertTrue($policy->delete($author, $review));
     }
@@ -61,7 +61,7 @@ class ReviewPolicyTest extends TestCase
             'user_id' => $author->id,
         ]);
 
-        $policy = new ReviewPolicy();
+        $policy = new ReviewPolicy;
 
         $this->assertFalse($policy->delete($otherUser, $review));
     }
