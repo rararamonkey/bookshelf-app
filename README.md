@@ -243,7 +243,7 @@ coachtech-prepared-file/Preparedblade-mockcase-BookShelf
 任意のディレクトリで、以下のコマンドを実行します。
 
 ```bash
-git clone <リポジトリURL>
+git clone https://github.com/rararamonkey/bookshelf-app.git
 ```
 
 プロジェクトディレクトリへ移動します。
