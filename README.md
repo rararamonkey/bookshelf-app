@@ -330,14 +330,6 @@ docker run --rm \
 ./vendor/bin/sail ps
 ```
 
-`.env`ファイルを追加または変更した場合は、設定キャッシュをクリアしてください。
-
-```bash
-./vendor/bin/sail artisan config:clear
-```
-
----
-
 ## 6. アプリケーションキーを生成
 
 ```bash
