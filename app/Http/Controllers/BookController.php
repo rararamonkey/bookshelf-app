@@ -181,7 +181,11 @@ class BookController extends Controller
         }
 
         $response = Http::timeout(10)->get(
-            "https://www.googleapis.com/books/v1/volumes?q=isbn:{$isbn}"
+            'https://www.googleapis.com/books/v1/volumes',
+            [
+                'q' => "isbn:{$isbn}",
+                'key' => config('services.google_books.api_key'),
+            ]
         );
 
         if (! $response->successful()) {

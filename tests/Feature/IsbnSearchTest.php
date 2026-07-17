@@ -45,12 +45,23 @@ class IsbnSearchTest extends TestCase
                 'description' => 'テスト説明',
                 'image_url' => 'https://example.com/book.jpg',
             ]);
-
         Http::assertSent(function ($request): bool {
-            return str_contains(
-                $request->url(),
-                'https://www.googleapis.com/books/v1/volumes?q=isbn:9781234567890'
+            $queryParameters = [];
+
+            parse_str(
+                parse_url($request->url(), PHP_URL_QUERY) ?? '',
+                $queryParameters
             );
+
+            return parse_url($request->url(), PHP_URL_SCHEME) === 'https'
+                && parse_url($request->url(), PHP_URL_HOST)
+                    === 'www.googleapis.com'
+                && parse_url($request->url(), PHP_URL_PATH)
+                    === '/books/v1/volumes'
+                && ($queryParameters['q'] ?? null)
+                    === 'isbn:9781234567890'
+                && ($queryParameters['key'] ?? null)
+                    === config('services.google_books.api_key');
         });
     }
 
