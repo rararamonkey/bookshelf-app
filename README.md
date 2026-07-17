@@ -424,6 +424,34 @@ password
 
 ---
 
+# 動作確認
+
+## ISBN検索
+
+以下のテストユーザーでログインしてください。
+
+**メールアドレス**
+
+```text
+test@example.com
+```
+
+**パスワード**
+
+```text
+password
+```
+
+ログイン後、「書籍登録」画面を開き、以下のISBNを入力して「ISBN検索」を実行してください。
+
+```text
+9784873115658
+```
+
+タイトル、著者名、出版日、説明、画像URLが自動入力されることを確認してください。
+
+---
+
 ## PHPUnitテスト
 
 本プロジェクトでは、PHPUnitを使用して各機能の動作を検証しています。
@@ -434,122 +462,33 @@ password
 ./vendor/bin/sail artisan test
 ```
 
-すべてのテスト結果が**PASS**になることを確認してください。
+すべてのテスト結果がPASSになることを確認してください。
 
-特定のテストファイルのみ実行する場合は、以下のようにファイルを指定します。
+特定のテストファイルのみ実行する場合は、以下のコマンドを実行してください。
 
 ```bash
 ./vendor/bin/sail artisan test tests/Feature/ReadingPlanTest.php
 ```
 
-特定のテストのみ実行する場合は、`--filter`を使用します。
-
-```bash
-./vendor/bin/sail artisan test --filter=テストメソッド名
-```
-
 Google Books APIを利用するテストでは`Http::fake()`を使用しているため、テスト実行時は実際のGoogle Books APIへ通信しません。
+
+---
 
 ## 開発環境URL
 
 | サービス | URL |
-| --- | --- |
-| アプリケーション | `http://localhost` |
-| phpMyAdmin | `http://localhost:8080` |
+|----------|-----|
+| アプリケーション | http://localhost |
 
 ---
 
 ## テストユーザー
 
-Seederを実行すると、以下のテストユーザーが登録されます。
+Seederを実行すると、以下のテストユーザーが作成されます。
 
-| ユーザー名 | メールアドレス | パスワード |
-| --- | --- | --- |
-| 山田太郎 | `yamada@example.com` | `password` |
-| 鈴木花子 | `suzuki@example.com` | `password` |
-| 田中一郎 | `tanaka@example.com` | `password` |
-| 佐藤美咲 | `sato@example.com` | `password` |
-| 高橋健太 | `takahashi@example.com` | `password` |
-
-すべてのテストユーザーで、共通パスワード`password`を使用しています。
-
----
-
-## テスト
-
-### すべてのテストを実行
-
-すべてのテストを実行します。
-
-```bash
-./vendor/bin/sail artisan test
-```
-
-### テストカバレッジを確認
-
-テストカバレッジを確認する場合は、以下を実行します。
-
-```bash
-./vendor/bin/sail artisan test --coverage
-```
-
-### 特定のテストクラスを実行
-
-テストクラス名を`--filter`に指定します。
-
-```bash
-./vendor/bin/sail artisan test --filter=ReadingPlanTest
-```
-
-```bash
-./vendor/bin/sail artisan test --filter=ApiBookTest
-```
-
-```bash
-./vendor/bin/sail artisan test --filter=NotificationTest
-```
-
-### 特定のテストメソッドを実行
-
-テストメソッド名を`--filter`に指定します。
-
-```bash
-./vendor/bin/sail artisan test --filter=test_owner_can_start_planned_reading_plan
-```
-
-### Feature Testを実行
-
-```bash
-./vendor/bin/sail artisan test tests/Feature
-```
-
-### Unit Testを実行
-
-```bash
-./vendor/bin/sail artisan test tests/Unit
-```
-
-### テスト実行前の確認
-
-Laravel Sailが起動していることを確認します。
-
-```bash
-./vendor/bin/sail ps
-```
-
-起動していない場合は、以下を実行します。
-
-```bash
-./vendor/bin/sail up -d
-```
-
-データベースのテーブルや初期データを再構築する場合は、以下を実行します。
-
-```bash
-./vendor/bin/sail artisan migrate:fresh --seed
-```
-
----
+| メールアドレス | パスワード |
+|---------------|------------|
+| test@example.com | password |
 
 ## テスト結果
 
