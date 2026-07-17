@@ -262,8 +262,19 @@ cd bookshelf-app
 ```bash
 cp .env.example .env
 ```
+## 3. Google Books APIキーの設定
 
-### 3. PHP依存パッケージをインストール
+ISBN検索機能では、Google Books APIを使用しています。
+
+`.env`ファイルに以下の環境変数を設定してください。
+
+```env
+GOOGLE_BOOKS_API_KEY=ご自身のAPIキー
+```
+
+`.env.example`にはキー名のみ記載しています。
+
+### 4. PHP依存パッケージをインストール
 
 Laravel Sailを起動する前に、Dockerを使用してComposerの依存パッケージをインストールします。
 
@@ -277,7 +288,7 @@ docker run --rm \
     composer install
 ```
 
-### 4. Laravel Sailを起動
+### 5. Laravel Sailを起動
 
 ```bash
 ./vendor/bin/sail up -d
@@ -289,7 +300,7 @@ docker run --rm \
 ./vendor/bin/sail ps
 ```
 
-### 5. `.env`のデータベース設定
+### 6. `.env`のデータベース設定
 
 `.env`ファイルのデータベース設定が、以下の内容になっていることを確認します。
 
@@ -304,19 +315,19 @@ DB_PASSWORD=password
 
 `DB_HOST`には、`localhost`や`127.0.0.1`ではなく、Dockerのサービス名である`mysql`を指定します。
 
-### 6. アプリケーションキーを生成
+### 7. アプリケーションキーを生成
 
 ```bash
 ./vendor/bin/sail artisan key:generate
 ```
 
-### 7. フロントエンドの依存パッケージをインストール
+### 8. フロントエンドの依存パッケージをインストール
 
 ```bash
 ./vendor/bin/sail npm install
 ```
 
-### 8. データベースを作成し、初期データを登録
+### 9. データベースを作成し、初期データを登録
 
 以下のコマンドでマイグレーションを実行し、Seederの初期データを登録します。
 
@@ -330,15 +341,17 @@ DB_PASSWORD=password
 ./vendor/bin/sail artisan migrate:fresh --seed
 ```
 
-### 9. Vite開発サーバーを起動
+### 10. Vite開発サーバーを起動
 
 ```bash
 ./vendor/bin/sail npm run dev
 ```
 
-開発中は、このコマンドを実行した状態にしてください。
+このコマンドは終了せず待機状態になるため、ターミナルを開いたままにしてください。
 
-### 10. アプリケーションへアクセス
+以降のコマンドを実行する場合は、別のターミナルを開いて実行してください。
+
+### 11. アプリケーションへアクセス
 
 ブラウザで以下へアクセスします。
 
