@@ -405,7 +405,7 @@ http://localhost
 **メールアドレス**
 
 ```text
-test@example.com
+yamada@example.com
 ```
 
 **パスワード**
