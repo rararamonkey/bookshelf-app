@@ -302,7 +302,7 @@ GOOGLE_BOOKS_API_KEY=
 
 本プロジェクトのテストでは`Http::fake()`を使用しているため、テスト実行時は実際のGoogle Books APIへ通信しません。
 
-`.env`ファイルを追加または変更した場合は、設定キャッシュをクリアしてください。
+※ `.env`ファイルを変更したにもかかわらず設定が反映されない場合は、以下を実行してください。
 
 ```bash
 ./vendor/bin/sail artisan config:clear
@@ -336,6 +336,12 @@ docker run --rm \
 
 ```bash
 ./vendor/bin/sail ps
+```
+
+`.env`ファイルを追加または変更した場合は、設定キャッシュをクリアしてください。
+
+```bash
+./vendor/bin/sail artisan config:clear
 ```
 
 ---
