@@ -193,5 +193,11 @@ class SendReadingPlanRemindersTest extends TestCase
                 ->where('data->reading_plan_id', $plan->id)
                 ->count()
         );
+        $plan->refresh();
+
+        $this->assertSame(
+            ReadingPlanStatus::Expired,
+            $plan->status
+        );
     }
 }
