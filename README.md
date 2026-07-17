@@ -262,17 +262,47 @@ cd bookshelf-app
 ```bash
 cp .env.example .env
 ```
-## 3. Google Books APIキーの設定
+### 3. Google Books APIキーの設定
 
-ISBN検索機能では、Google Books APIを使用しています。
+書籍登録画面のISBN検索機能では、Google Books APIを使用しています。
 
-`.env`ファイルに以下の環境変数を設定してください。
+Google Cloud ConsoleでGoogle Books APIを有効化し、APIキーを取得してください。
+
+取得したAPIキーを、`.env`ファイルに設定します。
 
 ```env
-GOOGLE_BOOKS_API_KEY=ご自身のAPIキー
+GOOGLE_BOOKS_API_KEY=取得したAPIキー
 ```
 
-`.env.example`にはキー名のみ記載しています。
+`.env.example`には、以下のように環境変数名のみ記載しています。
+
+```env
+GOOGLE_BOOKS_API_KEY=
+```
+
+環境変数を設定または変更した後は、設定キャッシュを削除してください。
+
+```bash
+./vendor/bin/sail artisan config:clear
+```
+
+APIキーが設定されていない場合、Google Books APIを利用したISBN検索は正常に実行できません。
+
+#### ISBN検索の動作確認
+
+1. アプリケーションへログインします。
+2. 書籍登録画面を開きます。
+3. 13桁のISBNを入力します。
+4. ISBN検索を実行します。
+5. タイトル、著者名、出版日、説明、画像URLが入力欄へ反映されることを確認します。
+
+ISBN検索には、例として以下のISBNを使用できます。
+
+```text
+9784873115658
+```
+
+外部APIを利用するテストでは`Http::fake()`を使用しているため、テスト実行時は実際のGoogle Books APIへ通信しません。
 
 ### 4. PHP依存パッケージをインストール
 
@@ -312,6 +342,7 @@ DB_DATABASE=laravel
 DB_USERNAME=sail
 DB_PASSWORD=password
 ```
+GOOGLE_BOOKS_API_KEY=
 
 `DB_HOST`には、`localhost`や`127.0.0.1`ではなく、Dockerのサービス名である`mysql`を指定します。
 
@@ -330,6 +361,7 @@ DB_PASSWORD=password
 ### 9. データベースを作成し、初期データを登録
 
 以下のコマンドでマイグレーションを実行し、Seederの初期データを登録します。
+Seederには、書籍・レビュー・お気に入り・レビューいいねに加えて、期限切れ通知や読書計画の認可確認に必要なダミーデータも含まれています。
 
 ```bash
 ./vendor/bin/sail artisan migrate --seed
@@ -509,32 +541,117 @@ Laravel Sailが起動していることを確認します。
 
 ---
 
-## Scheduler
+## Scheduler・期限切れ通知
 
 読書計画の期限切れ処理と通知処理には、Laravel Schedulerを利用しています。
 
-ローカル環境でSchedulerを継続実行する場合は、以下のコマンドを使用します。
+毎日午前8時に、期限切れ読書計画の確認処理を実行します。
 
-```bash
-./vendor/bin/sail artisan schedule:work
-```
+期限切れ処理の対象となるのは、以下の条件をすべて満たす読書計画です。
 
-登録されているスケジュールを確認する場合は、以下を実行します。
+- ステータスが`planned`（未読）または`reading`（読書中）
+- `target_date`が実行日より前の日付
+
+期限当日の読書計画は、期限切れ処理の対象になりません。
+
+処理対象となった読書計画は、以下のように更新されます。
+
+- ステータスを`expired`（期限切れ）へ変更
+- 読書計画の所有者にデータベース通知を作成
+
+同一の読書計画に対する期限切れ通知は、1回のみ作成されます。
+
+### 登録されているスケジュールの確認
+
+以下のコマンドで、Schedulerに登録されている処理と実行時刻を確認できます。
 
 ```bash
 ./vendor/bin/sail artisan schedule:list
 ```
 
-期限切れ処理では、期日を過ぎた以下の読書計画を対象とします。
+期限切れ通知処理が毎日午前8時に登録されていることを確認してください。
 
-- 未読
-- 読書中
+### ローカル環境でSchedulerを継続実行する方法
 
-処理後はステータスを`expired`へ変更し、対象ユーザーに通知を作成します。
+ローカル環境でSchedulerを継続的に動作させる場合は、以下のコマンドを実行します。
 
-同一の読書計画に対する期限切れ通知は、1回のみ作成されます。
+```bash
+./vendor/bin/sail artisan schedule:work
+```
 
----
+このコマンドは終了せず待機状態になるため、実行中はターミナルを開いたままにしてください。
+
+### 期限切れ通知を手動で確認する方法
+
+採点時や開発時にSchedulerの実行時刻を待たず確認できるよう、以下のArtisanコマンドを用意しています。
+
+```bash
+./vendor/bin/sail artisan reading-plans:send-reminders
+```
+
+Seederには、期限切れ通知の確認に必要な読書計画が登録されています。
+
+初期データを再構築します。
+
+```bash
+./vendor/bin/sail artisan migrate:fresh --seed
+```
+
+続けて、期限切れ通知コマンドを実行します。
+
+```bash
+./vendor/bin/sail artisan reading-plans:send-reminders
+```
+
+初回実行時は、以下の2件が処理対象になります。
+
+- `planned`かつ期限切れの読書計画
+- `reading`かつ期限切れの読書計画
+
+期待される出力は以下です。
+
+```text
+2件の読書計画を確認しました。
+```
+
+処理後は、対象となった2件のステータスが`expired`へ変更され、所有者に通知が作成されます。
+
+同じコマンドをもう一度実行します。
+
+```bash
+./vendor/bin/sail artisan reading-plans:send-reminders
+```
+
+対象の読書計画はすでに`expired`へ変更されているため、2回目は以下の出力になります。
+
+```text
+0件の読書計画を確認しました。
+```
+
+これにより、同じ読書計画について通知が繰り返し作成されないことを確認できます。
+
+### 画面上での通知確認
+
+1. 以下のテストユーザーでログインします。
+
+```text
+メールアドレス：yamada@example.com
+パスワード：password
+```
+
+2. 通知一覧画面を開きます。
+3. 期限切れ読書計画の通知が2件表示されることを確認します。
+4. 通知の既読処理が実行できることを確認します。
+
+### Schedulerを本番環境で動作させる場合
+
+本番環境では、サーバーのCronなどからLaravel Schedulerを毎分実行する設定が必要です。
+
+```cron
+* * * * * cd /path-to-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+`/path-to-project`は、実際のプロジェクトディレクトリへ置き換えてください。
 
 ## API認証
 
